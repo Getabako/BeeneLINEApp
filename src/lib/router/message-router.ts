@@ -12,19 +12,35 @@ import { MESSAGES } from '@/lib/constants/messages';
 import type { FlowType } from '@/types';
 
 export async function routeEvent(event: WebhookEvent): Promise<void> {
-  if (event.type === 'follow') {
-    await handleFollow(event);
-    return;
-  }
+  try {
+    if (event.type === 'follow') {
+      await handleFollow(event);
+      return;
+    }
 
-  if (event.type === 'message') {
-    await handleMessage(event);
-    return;
-  }
+    if (event.type === 'message') {
+      await handleMessage(event);
+      return;
+    }
 
-  if (event.type === 'postback') {
-    await handlePostback(event);
-    return;
+    if (event.type === 'postback') {
+      await handlePostback(event);
+      return;
+    }
+  } catch (error) {
+    console.error('Unhandled event processing error:', error);
+    const userId = 'source' in event && event.source.userId ? event.source.userId : null;
+    if (userId) {
+      try {
+        await resetState(userId);
+        await lineClient.pushMessage({
+          to: userId,
+          messages: [{ type: 'text', text: MESSAGES.GENERAL_ERROR }],
+        });
+      } catch (sendError) {
+        console.error('Failed to send error recovery message:', sendError);
+      }
+    }
   }
 }
 

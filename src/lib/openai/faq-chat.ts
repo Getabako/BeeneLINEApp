@@ -1,5 +1,6 @@
 import { getGenAI } from './client';
 import { FAQ_SYSTEM_PROMPT } from '@/lib/constants/prompts';
+import { withTimeout } from '@/lib/utils/timeout';
 
 export async function getFaqResponse(userMessage: string): Promise<string> {
   const genAI = getGenAI();
@@ -8,6 +9,6 @@ export async function getFaqResponse(userMessage: string): Promise<string> {
     systemInstruction: FAQ_SYSTEM_PROMPT,
   });
 
-  const result = await model.generateContent(userMessage);
+  const result = await withTimeout(model.generateContent(userMessage), 25000);
   return result.response.text() ?? 'すみません、応答を生成できませんでした。';
 }

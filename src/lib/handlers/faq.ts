@@ -53,7 +53,7 @@ export async function handleFaq(
       await lineClient.replyMessage({
         replyToken,
         messages: [
-          { type: 'text', text: `Q. ${item.question}\n\nA. ${item.answer}` },
+          { type: 'text', text: `Q. ${item.question}\n\n\nA. ${item.answer}` },
           { type: 'text', text: MESSAGES.RESERVATION_PROMPT },
           buildStoreCardsMessage(),
         ],
@@ -86,21 +86,34 @@ export async function handleFaq(
       return;
     }
 
-    // Free text: AI response using site content
-    const response = await getFaqResponse(text);
+    // Free text: send "thinking" message first, then AI result via pushMessage
     await lineClient.replyMessage({
       replyToken,
-      messages: [
-        { type: 'text', text: response },
-        { type: 'text', text: MESSAGES.RESERVATION_PROMPT },
-        buildStoreCardsMessage(),
-      ],
+      messages: [{ type: 'text', text: 'AIが回答を準備中です...💭' }],
     });
+
+    try {
+      const response = await getFaqResponse(text);
+      await lineClient.pushMessage({
+        to: userId,
+        messages: [
+          { type: 'text', text: response },
+          { type: 'text', text: MESSAGES.RESERVATION_PROMPT },
+          buildStoreCardsMessage(),
+        ],
+      });
+    } catch (aiError) {
+      console.error('FAQ AI error:', aiError);
+      await lineClient.pushMessage({
+        to: userId,
+        messages: [{ type: 'text', text: MESSAGES.GENERAL_ERROR }],
+      });
+    }
   } catch (error) {
     console.error('FAQ error:', error);
-    await lineClient.replyMessage({
-      replyToken,
+    await lineClient.pushMessage({
+      to: userId,
       messages: [{ type: 'text', text: MESSAGES.GENERAL_ERROR }],
-    });
+    }).catch((e) => console.error('Failed to send FAQ error message:', e));
   }
 }

@@ -3,6 +3,7 @@ import { lineClient } from '@/lib/line/client';
 import { getState, setState, resetState } from '@/lib/state/manager';
 import { saveDailyReport, getDailyReports } from '@/lib/db/daily-reports';
 import { getGenAI } from '@/lib/openai/client';
+import { withTimeout } from '@/lib/utils/timeout';
 import { MESSAGES } from '@/lib/constants/messages';
 import { BOWEL_OPTIONS, MOOD_OPTIONS } from '@/lib/constants/menus';
 import type { DailyReportContext } from '@/types';
@@ -160,10 +161,10 @@ export async function handleDailyReport(
         }
       } catch (error) {
         console.error('Daily report error:', error);
-        await lineClient.replyMessage({
-          replyToken: event.replyToken,
+        await lineClient.pushMessage({
+          to: userId,
           messages: [{ type: 'text', text: MESSAGES.GENERAL_ERROR }],
-        });
+        }).catch((e) => console.error('Failed to send daily report error:', e));
       }
 
       await resetState(userId);
@@ -226,7 +227,7 @@ async function generateEncouragement(
 
 メッセージのみを返してください。`;
 
-  const result = await model.generateContent([{ text: prompt }]);
+  const result = await withTimeout(model.generateContent([{ text: prompt }]), 25000);
   const content = result.response.text();
   return content || '毎日記録を続けているあなたは素晴らしいです！一歩一歩進んでいきましょう✨';
 }

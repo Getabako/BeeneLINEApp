@@ -3,6 +3,8 @@ import { WebhookEvent } from '@line/bot-sdk';
 import { validateSignature } from '@/lib/line/signature';
 import { routeEvent } from '@/lib/router/message-router';
 
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.text();
@@ -15,7 +17,17 @@ export async function POST(req: NextRequest) {
     const parsed = JSON.parse(body);
     const events: WebhookEvent[] = parsed.events;
 
-    await Promise.all(events.map((event) => routeEvent(event)));
+    // Process all events - await to keep the function alive
+    // Use allSettled so one event's failure doesn't block others
+    const results = await Promise.allSettled(
+      events.map((event) => routeEvent(event))
+    );
+
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        console.error('Event processing error:', result.reason);
+      }
+    }
 
     return NextResponse.json({ status: 'ok' });
   } catch (error) {

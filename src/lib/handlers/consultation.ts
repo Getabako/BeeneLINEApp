@@ -1,6 +1,7 @@
 import { MessageEvent } from '@line/bot-sdk';
 import { lineClient } from '@/lib/line/client';
 import { getGenAI } from '@/lib/openai/client';
+import { withTimeout } from '@/lib/utils/timeout';
 import { buildStoreCardsMessage } from '@/lib/line/message-builder';
 import { MESSAGES } from '@/lib/constants/messages';
 import { CONSULTATION_CATEGORIES, CONSULTATION_ITEMS } from '@/lib/constants/menus';
@@ -81,7 +82,7 @@ export async function handleConsultation(
       await lineClient.replyMessage({
         replyToken,
         messages: [
-          { type: 'text', text: `${answer}\n\n詳しくは店舗でカウンセリングを受けてみてくださいね😊` },
+          { type: 'text', text: `${answer}\n\n\n詳しくは店舗でカウンセリングを受けてみてくださいね😊` },
           { type: 'text', text: MESSAGES.RESERVATION_PROMPT },
           buildStoreCardsMessage(),
         ],
@@ -114,29 +115,42 @@ export async function handleConsultation(
       return;
     }
 
-    // Free text: AI response
-    const genAI = getGenAI();
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
-      systemInstruction: CONSULTATION_SYSTEM_PROMPT,
-    });
-
-    const result = await model.generateContent(text);
-    const response = result.response.text() ?? 'すみません、応答を生成できませんでした。';
-
+    // Free text: send "thinking" message first, then AI result via pushMessage
     await lineClient.replyMessage({
       replyToken,
-      messages: [
-        { type: 'text', text: response },
-        { type: 'text', text: MESSAGES.RESERVATION_PROMPT },
-        buildStoreCardsMessage(),
-      ],
+      messages: [{ type: 'text', text: 'AIが回答を準備中です...💭' }],
     });
+
+    try {
+      const genAI = getGenAI();
+      const model = genAI.getGenerativeModel({
+        model: 'gemini-2.0-flash',
+        systemInstruction: CONSULTATION_SYSTEM_PROMPT,
+      });
+
+      const result = await withTimeout(model.generateContent(text), 25000);
+      const response = result.response.text() ?? 'すみません、応答を生成できませんでした。';
+
+      await lineClient.pushMessage({
+        to: userId,
+        messages: [
+          { type: 'text', text: response },
+          { type: 'text', text: MESSAGES.RESERVATION_PROMPT },
+          buildStoreCardsMessage(),
+        ],
+      });
+    } catch (aiError) {
+      console.error('Consultation AI error:', aiError);
+      await lineClient.pushMessage({
+        to: userId,
+        messages: [{ type: 'text', text: MESSAGES.GENERAL_ERROR }],
+      });
+    }
   } catch (error) {
     console.error('Consultation error:', error);
-    await lineClient.replyMessage({
-      replyToken,
+    await lineClient.pushMessage({
+      to: userId,
       messages: [{ type: 'text', text: MESSAGES.GENERAL_ERROR }],
-    });
+    }).catch((e) => console.error('Failed to send consultation error message:', e));
   }
 }

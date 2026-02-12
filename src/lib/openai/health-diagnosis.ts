@@ -1,5 +1,6 @@
 import { getGenAI } from './client';
 import { HEALTH_COMPREHENSIVE_PROMPT } from '@/lib/constants/prompts';
+import { withTimeout } from '@/lib/utils/timeout';
 import type { HealthComprehensiveResult } from '@/types';
 
 export async function analyzeHealthComprehensive(params: {
@@ -25,10 +26,13 @@ export async function analyzeHealthComprehensive(params: {
   const genAI = getGenAI();
   const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
-  const result = await model.generateContent([
-    { text: prompt },
-    { text: '上記の情報をもとに総合分析結果を出してください。' },
-  ]);
+  const result = await withTimeout(
+    model.generateContent([
+      { text: prompt },
+      { text: '上記の情報をもとに総合分析結果を出してください。' },
+    ]),
+    25000
+  );
 
   const content = result.response.text();
   if (!content) throw new Error('No response from Gemini');
