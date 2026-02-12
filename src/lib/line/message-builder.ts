@@ -1,4 +1,4 @@
-import type { SkinAnalysisResult, MealAnalysisResult, HealthDiagnosisResult } from '@/types';
+import type { SkinAnalysisResult, MealAnalysisResult, HealthDiagnosisResult, HealthComprehensiveResult } from '@/types';
 import { STORES } from '@/lib/constants/menus';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -164,6 +164,95 @@ export function buildHealthResultMessage(result: HealthDiagnosisResult): FlexMes
           buildScoreRow('目標カロリー', `${result.calorie_target}kcal/日`),
           { type: 'separator', margin: 'md' },
           { type: 'text', text: '💡 アドバイス', weight: 'bold', size: 'sm', margin: 'md', color: '#1565C0' },
+          { type: 'text', text: result.advice, size: 'xs', color: '#444444', wrap: true, margin: 'sm' },
+        ],
+        paddingAll: '15px',
+      },
+    },
+  };
+}
+
+export function buildHealthBmiMessage(data: {
+  height: number;
+  weight: number;
+  bmi: number;
+  obesity_level: string;
+  ideal_weight: number;
+  weight_diff: number;
+}): FlexMessageObject {
+  return {
+    type: 'flex',
+    altText: `BMI計算結果: ${data.bmi}（${data.obesity_level}）`,
+    contents: {
+      type: 'bubble',
+      header: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          { type: 'text', text: 'BMI計算結果', weight: 'bold', size: 'lg', color: '#1565C0' },
+        ],
+        backgroundColor: '#F0F8FF',
+        paddingAll: '15px',
+      },
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              { type: 'text', text: 'BMI', size: 'sm', color: '#666666', flex: 1 },
+              { type: 'text', text: `${data.bmi}`, size: 'xl', weight: 'bold', color: '#1565C0', flex: 2, align: 'end' },
+            ],
+          },
+          {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              { type: 'text', text: '', flex: 1 },
+              { type: 'text', text: data.obesity_level, size: 'sm', color: '#E91E8C', flex: 2, align: 'end', weight: 'bold' },
+            ],
+            margin: 'xs',
+          },
+          { type: 'separator', margin: 'md' },
+          buildScoreRow('身長', `${data.height}cm`),
+          buildScoreRow('体重', `${data.weight}kg`),
+          buildScoreRow('理想体重', `${data.ideal_weight}kg`),
+          buildScoreRow('理想体重との差', `${data.weight_diff > 0 ? '+' : ''}${data.weight_diff}kg`),
+        ],
+        paddingAll: '15px',
+      },
+    },
+  };
+}
+
+export function buildHealthComprehensiveResultMessage(result: HealthComprehensiveResult): FlexMessageObject {
+  return {
+    type: 'flex',
+    altText: 'AI総合分析結果',
+    contents: {
+      type: 'bubble',
+      header: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          { type: 'text', text: 'AI総合分析結果', weight: 'bold', size: 'lg', color: '#1565C0' },
+        ],
+        backgroundColor: '#F0F8FF',
+        paddingAll: '15px',
+      },
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          { type: 'text', text: '📊 総合分析', weight: 'bold', size: 'sm', color: '#1565C0' },
+          { type: 'text', text: result.comprehensive_analysis, size: 'xs', color: '#444444', wrap: true, margin: 'sm' },
+          { type: 'separator', margin: 'md' },
+          { type: 'text', text: '💡 プログラム提案', weight: 'bold', size: 'sm', margin: 'md', color: '#1565C0' },
+          { type: 'text', text: result.program_recommendation, size: 'xs', color: '#444444', wrap: true, margin: 'sm' },
+          { type: 'separator', margin: 'md' },
+          { type: 'text', text: '✨ 今日からのアドバイス', weight: 'bold', size: 'sm', margin: 'md', color: '#1565C0' },
           { type: 'text', text: result.advice, size: 'xs', color: '#444444', wrap: true, margin: 'sm' },
         ],
         paddingAll: '15px',

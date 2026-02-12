@@ -176,18 +176,10 @@ async function startFlow(flow: FlowType, event: WebhookEvent & { replyToken: str
       await setState(userId, 'health_diagnosis', 1, {});
       await lineClient.replyMessage({
         replyToken: event.replyToken,
-        messages: [{ type: 'text', text: MESSAGES.HEALTH_ASK_AGE }],
+        messages: [{ type: 'text', text: MESSAGES.HEALTH_ASK_HEIGHT }],
       });
       break;
     case 'meal_analysis': {
-      const user = await getOrCreateUser(userId);
-      if (user.membership !== 'paid') {
-        await lineClient.replyMessage({
-          replyToken: event.replyToken,
-          messages: [{ type: 'text', text: MESSAGES.MEAL_PAID_ONLY }],
-        });
-        return;
-      }
       await setState(userId, 'meal_analysis', 1, { awaiting_image: true });
       await lineClient.replyMessage({
         replyToken: event.replyToken,
@@ -196,14 +188,6 @@ async function startFlow(flow: FlowType, event: WebhookEvent & { replyToken: str
       break;
     }
     case 'daily_report': {
-      const user = await getOrCreateUser(userId);
-      if (user.membership !== 'paid') {
-        await lineClient.replyMessage({
-          replyToken: event.replyToken,
-          messages: [{ type: 'text', text: MESSAGES.DAILY_PAID_ONLY }],
-        });
-        return;
-      }
       await setState(userId, 'daily_report', 1, {});
       await lineClient.replyMessage({
         replyToken: event.replyToken,

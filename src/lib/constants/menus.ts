@@ -30,20 +30,20 @@ export const GENDER_OPTIONS = [
 // 予約店舗一覧
 export const STORES = [
   {
-    name: 'Beene 秋田店',
-    description: '秋田駅徒歩8分・美容鍼サロン',
+    name: 'はりサロンHALicht横手',
+    description: '横手市・美容鍼サロン',
     url: 'https://beauty.hotpepper.jp/CSP/kr/reserve/?storeId=H000665764&ch=1&vos=cpshbkprocap0140516003',
     image: 'https://beene-akita.jp/wp-content/uploads/2023/01/akita-store.jpg',
   },
   {
-    name: 'Beene 2号店',
-    description: 'クーポンで初回お得に体験',
+    name: 'Beene秋田店',
+    description: '秋田駅徒歩8分・美容鍼サロン',
     url: 'https://beauty.hotpepper.jp/kr/slnH000676700/coupon/',
     image: 'https://beene-akita.jp/wp-content/uploads/2023/01/store2.jpg',
   },
   {
-    name: 'Beene 3号店',
-    description: 'ホットペッパーで簡単予約',
+    name: 'Beene札幌琴似店',
+    description: '札幌琴似・美容鍼サロン',
     url: 'https://beauty.hotpepper.jp/kr/slnH000766334/',
     image: 'https://beene-akita.jp/wp-content/uploads/2023/01/store3.jpg',
   },
@@ -153,6 +153,22 @@ export const CONSULTATION_ITEMS: Record<string, { question: string; data: string
     { question: 'どのメニューが合うかわからない', data: 'consult_q=recommend' },
   ],
 };
+
+// 体重診断: 悩み選択肢
+export const HEALTH_CONCERN_OPTIONS = [
+  { label: '食事制限が続かない', value: 'diet_hard' },
+  { label: 'リバウンドを繰り返す', value: 'rebound' },
+  { label: '運動が苦手', value: 'exercise_hard' },
+  { label: '体質的に痩せにくい', value: 'hard_to_lose' },
+] as const;
+
+// 体重診断: プログラムで知りたいこと選択肢
+export const HEALTH_PROGRAM_OPTIONS = [
+  { label: 'プログラムの内容', value: 'program_detail' },
+  { label: '期間と費用', value: 'duration_cost' },
+  { label: '成功事例が知りたい', value: 'success_cases' },
+  { label: 'まず相談したい', value: 'want_consult' },
+] as const;
 
 // リッチメニュー定義
 export const RICH_MENU = {

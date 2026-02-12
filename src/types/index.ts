@@ -140,6 +140,16 @@ export interface HealthDiagnosisResult {
   ideal_weight: number;
   calorie_target: number;
   advice: string;
+  obesity_level?: string;
+  weight_diff?: number;
+  comprehensive_analysis?: string;
+  program_recommendation?: string;
+}
+
+export interface HealthComprehensiveResult {
+  comprehensive_analysis: string;
+  program_recommendation: string;
+  advice: string;
 }
 
 // ============================================
@@ -155,6 +165,13 @@ export interface HealthDiagnosisContext {
   gender?: string;
   height?: number;
   weight?: number;
+  bmi?: number;
+  obesity_level?: string;
+  ideal_weight?: number;
+  weight_diff?: number;
+  diet_history?: string;
+  current_concerns?: string;
+  program_question?: string;
 }
 
 export interface MealAnalysisContext {
