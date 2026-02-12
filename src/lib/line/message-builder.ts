@@ -1,9 +1,46 @@
 import type { SkinAnalysisResult, MealAnalysisResult, HealthDiagnosisResult } from '@/types';
+import { STORES } from '@/lib/constants/menus';
 
-// Use plain object types to avoid conflicts between @line/bot-sdk legacy and messagingApi types.
-// These are compatible with messagingApi.FlexMessage at runtime.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type FlexMessageObject = any;
+
+// 店舗予約カードのカルーセル
+export function buildStoreCardsMessage(): FlexMessageObject {
+  return {
+    type: 'flex',
+    altText: '店舗一覧 - ご予約はこちら',
+    contents: {
+      type: 'carousel',
+      contents: STORES.map((store) => ({
+        type: 'bubble',
+        size: 'micro',
+        body: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            { type: 'text', text: store.name, weight: 'bold', size: 'md', wrap: true },
+            { type: 'text', text: store.description, size: 'xs', color: '#888888', margin: 'sm', wrap: true },
+          ],
+          paddingAll: '12px',
+        },
+        footer: {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            {
+              type: 'button',
+              action: { type: 'uri', label: '予約する', uri: store.url },
+              style: 'primary',
+              color: '#E91E8C',
+              height: 'sm',
+            },
+          ],
+          paddingAll: '8px',
+        },
+      })),
+    },
+  };
+}
 
 export function buildSkinResultMessage(result: SkinAnalysisResult): FlexMessageObject {
   return {
@@ -43,19 +80,6 @@ export function buildSkinResultMessage(result: SkinAnalysisResult): FlexMessageO
           { type: 'text', text: result.advice, size: 'xs', color: '#444444', wrap: true, margin: 'sm' },
         ],
         paddingAll: '15px',
-      },
-      footer: {
-        type: 'box',
-        layout: 'vertical',
-        contents: [
-          {
-            type: 'button',
-            action: { type: 'postback', label: '予約する', data: 'action=reservation' },
-            style: 'primary',
-            color: '#E91E8C',
-          },
-        ],
-        paddingAll: '10px',
       },
     },
   };
@@ -143,19 +167,6 @@ export function buildHealthResultMessage(result: HealthDiagnosisResult): FlexMes
           { type: 'text', text: result.advice, size: 'xs', color: '#444444', wrap: true, margin: 'sm' },
         ],
         paddingAll: '15px',
-      },
-      footer: {
-        type: 'box',
-        layout: 'vertical',
-        contents: [
-          {
-            type: 'button',
-            action: { type: 'postback', label: '予約して相談する', data: 'action=reservation' },
-            style: 'primary',
-            color: '#1565C0',
-          },
-        ],
-        paddingAll: '10px',
       },
     },
   };

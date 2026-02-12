@@ -10,7 +10,9 @@ export type FlowType =
   | 'health_diagnosis'
   | 'meal_analysis'
   | 'daily_report'
-  | 'reservation';
+  | 'reservation'
+  | 'faq'
+  | 'consultation';
 
 export type ReservationStatus = 'pending' | 'confirmed' | 'cancelled';
 

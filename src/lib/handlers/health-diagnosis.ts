@@ -3,7 +3,7 @@ import { lineClient } from '@/lib/line/client';
 import { getState, setState, resetState, updateContext } from '@/lib/state/manager';
 import { updateUser } from '@/lib/db/users';
 import { analyzeHealth } from '@/lib/openai/health-diagnosis';
-import { buildHealthResultMessage } from '@/lib/line/message-builder';
+import { buildHealthResultMessage, buildStoreCardsMessage } from '@/lib/line/message-builder';
 import { MESSAGES } from '@/lib/constants/messages';
 import { GENDER_OPTIONS } from '@/lib/constants/menus';
 import type { HealthDiagnosisContext } from '@/types';
@@ -115,7 +115,11 @@ export async function handleHealthDiagnosis(
         const flexMessage = buildHealthResultMessage(result);
         await lineClient.pushMessage({
           to: userId,
-          messages: [flexMessage],
+          messages: [
+            flexMessage,
+            { type: 'text', text: MESSAGES.RESERVATION_PROMPT },
+            buildStoreCardsMessage(),
+          ],
         });
       } catch (error) {
         console.error('Health diagnosis error:', error);

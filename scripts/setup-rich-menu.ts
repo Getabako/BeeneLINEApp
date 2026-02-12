@@ -7,8 +7,14 @@
  * 事前準備:
  *   1. .env.local に LINE_CHANNEL_ACCESS_TOKEN を設定
  *   2. リッチメニュー画像を用意 (2500x1686px)
- *      - scripts/rich-menu-free.png (無料会員用)
- *      - scripts/rich-menu-paid.png (有料会員用)
+ *      - scripts/rich-menu.png
+ *
+ * メニュー配置 (6パネル):
+ * ┌──────────┬──────────┬──────────┐
+ * │  肌診断   │ 体重診断  │   FAQ    │
+ * ├──────────┼──────────┼──────────┤
+ * │  食事記録  │   日報   │   相談   │
+ * └──────────┴──────────┴──────────┘
  */
 
 import { messagingApi } from '@line/bot-sdk';
@@ -35,16 +41,9 @@ const ROW = 2;
 const cellWidth = Math.floor(MENU_WIDTH / COL);
 const cellHeight = Math.floor(MENU_HEIGHT / ROW);
 
-function createArea(col: number, row: number, action: string, label: string, type: 'postback' | 'uri' = 'postback') {
+function createArea(col: number, row: number, action: string, label: string) {
   const x = col * cellWidth;
   const y = row * cellHeight;
-
-  if (type === 'uri') {
-    return {
-      bounds: { x, y, width: cellWidth, height: cellHeight },
-      action: { type: 'uri' as const, label, uri: 'https://beenestyle.com/column' },
-    };
-  }
 
   return {
     bounds: { x, y, width: cellWidth, height: cellHeight },
@@ -64,72 +63,51 @@ async function main() {
     console.log(`  削除: ${menu.richMenuId} (${menu.name})`);
   }
 
-  // Create free member menu
-  console.log('\n無料会員メニューを作成中...');
-  const freeMenuId = await client.createRichMenu({
+  // Create 6-panel menu
+  console.log('\nリッチメニューを作成中...');
+  const menuId = await client.createRichMenu({
     size: { width: MENU_WIDTH, height: MENU_HEIGHT },
     selected: true,
-    name: 'BeeneStyle 無料会員メニュー',
+    name: 'BeeneStyle メニュー',
     chatBarText: 'メニューを開く',
     areas: [
+      // Row 1: 肌診断 | 体重診断 | FAQ
       createArea(0, 0, 'skin_diagnosis', '肌診断'),
       createArea(1, 0, 'health_diagnosis', '体重診断'),
       createArea(2, 0, 'faq', 'FAQ'),
-      createArea(0, 1, 'reservation', '予約'),
-      createArea(1, 1, 'column', 'コラム', 'uri'),
-      createArea(2, 1, 'contact', 'お問合せ'),
-    ],
-  });
-  console.log(`  作成完了: ${freeMenuId.richMenuId}`);
-
-  // Upload free menu image if exists
-  const freeImagePath = path.join(__dirname, 'rich-menu-free.png');
-  if (fs.existsSync(freeImagePath)) {
-    const imageData = fs.readFileSync(freeImagePath);
-    await blobClient.setRichMenuImage(freeMenuId.richMenuId, new Blob([imageData], { type: 'image/png' }));
-    console.log('  画像アップロード完了');
-  } else {
-    console.log(`  ⚠️  画像ファイルが見つかりません: ${freeImagePath}`);
-    console.log('     後で LINE Developers コンソールからアップロードしてください');
-  }
-
-  // Create paid member menu
-  console.log('\n有料会員メニューを作成中...');
-  const paidMenuId = await client.createRichMenu({
-    size: { width: MENU_WIDTH, height: MENU_HEIGHT },
-    selected: true,
-    name: 'BeeneStyle 有料会員メニュー',
-    chatBarText: 'メニューを開く',
-    areas: [
-      createArea(0, 0, 'meal_analysis', '食事記録'),
-      createArea(1, 0, 'daily_report', '日報'),
-      createArea(2, 0, 'skin_diagnosis', '肌診断'),
-      createArea(0, 1, 'reservation', '予約'),
-      createArea(1, 1, 'progress', '経過'),
+      // Row 2: 食事記録 | 日報 | 相談
+      createArea(0, 1, 'meal_analysis', '食事記録'),
+      createArea(1, 1, 'daily_report', '日報'),
       createArea(2, 1, 'consultation', '相談'),
     ],
   });
-  console.log(`  作成完了: ${paidMenuId.richMenuId}`);
+  console.log(`  作成完了: ${menuId.richMenuId}`);
 
-  // Upload paid menu image if exists
-  const paidImagePath = path.join(__dirname, 'rich-menu-paid.png');
-  if (fs.existsSync(paidImagePath)) {
-    const imageData = fs.readFileSync(paidImagePath);
-    await blobClient.setRichMenuImage(paidMenuId.richMenuId, new Blob([imageData], { type: 'image/png' }));
+  // Upload menu image if exists
+  const imagePath = path.join(__dirname, 'rich-menu.png');
+  if (fs.existsSync(imagePath)) {
+    const imageData = fs.readFileSync(imagePath);
+    await blobClient.setRichMenuImage(menuId.richMenuId, new Blob([imageData], { type: 'image/png' }));
     console.log('  画像アップロード完了');
   } else {
-    console.log(`  ⚠️  画像ファイルが見つかりません: ${paidImagePath}`);
+    console.log(`  ⚠️  画像ファイルが見つかりません: ${imagePath}`);
     console.log('     後で LINE Developers コンソールからアップロードしてください');
   }
 
-  // Set free menu as default
-  await client.setDefaultRichMenu(freeMenuId.richMenuId);
-  console.log(`\nデフォルトメニュー設定: ${freeMenuId.richMenuId} (無料会員メニュー)`);
+  // Set as default
+  await client.setDefaultRichMenu(menuId.richMenuId);
+  console.log(`\nデフォルトメニュー設定: ${menuId.richMenuId}`);
 
   console.log('\n=== セットアップ完了 ===');
-  console.log('\n.env.local に以下を追加してください:');
-  console.log(`RICH_MENU_FREE_ID=${freeMenuId.richMenuId}`);
-  console.log(`RICH_MENU_PAID_ID=${paidMenuId.richMenuId}`);
+  console.log(`\nリッチメニューID: ${menuId.richMenuId}`);
+  console.log('\n※ 画像がまだの場合は LINE Developers コンソールから');
+  console.log('  2500x1686px の画像をアップロードしてください。');
+  console.log('\nメニュー配置:');
+  console.log('┌──────────┬──────────┬──────────┐');
+  console.log('│  肌診断   │ 体重診断  │   FAQ    │');
+  console.log('├──────────┼──────────┼──────────┤');
+  console.log('│  食事記録  │   日報   │   相談   │');
+  console.log('└──────────┴──────────┴──────────┘');
 }
 
 main().catch(console.error);

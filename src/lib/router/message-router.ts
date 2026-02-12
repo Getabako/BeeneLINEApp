@@ -6,8 +6,8 @@ import { handleSkinDiagnosis } from '@/lib/handlers/skin-diagnosis';
 import { handleHealthDiagnosis } from '@/lib/handlers/health-diagnosis';
 import { handleMealGuidance } from '@/lib/handlers/meal-guidance';
 import { handleDailyReport } from '@/lib/handlers/daily-report';
-import { handleReservation } from '@/lib/handlers/reservation';
 import { handleFaq } from '@/lib/handlers/faq';
+import { handleConsultation } from '@/lib/handlers/consultation';
 import { MESSAGES } from '@/lib/constants/messages';
 import type { FlowType } from '@/types';
 
@@ -58,16 +58,24 @@ async function handleMessage(event: MessageEvent): Promise<void> {
   if (event.message.type === 'text') {
     const text = event.message.text.trim();
 
-    // If user is in a flow, delegate to that handler
+    // Check if user wants to switch to a different flow (even mid-flow)
+    const newFlow = detectFlowFromText(text);
+    if (newFlow && state.current_flow !== 'idle' && newFlow !== state.current_flow) {
+      // User wants to switch flows - reset and start new one
+      await resetState(userId);
+      await startFlow(newFlow, event, userId);
+      return;
+    }
+
+    // If in a flow, delegate to handler
     if (state.current_flow !== 'idle') {
       await routeToHandler(state.current_flow, event, userId, text);
       return;
     }
 
-    // Check for keyword-based flow triggers
-    const flow = detectFlowFromText(text);
-    if (flow) {
-      await startFlow(flow, event, userId);
+    // Idle: check keywords
+    if (newFlow) {
+      await startFlow(newFlow, event, userId);
       return;
     }
 
@@ -84,10 +92,34 @@ async function handlePostback(event: PostbackEvent): Promise<void> {
 
   const params = new URLSearchParams(event.postback.data);
   const action = params.get('action');
+  const faqCat = params.get('faq_cat');
+  const faqQ = params.get('faq_q');
+  const consultCat = params.get('consult_cat');
+  const consultQ = params.get('consult_q');
+
+  // FAQ postbacks
+  if (faqCat) {
+    await handleFaq(event as unknown as MessageEvent, userId, '', faqCat);
+    return;
+  }
+  if (faqQ) {
+    await handleFaq(event as unknown as MessageEvent, userId, '', undefined, faqQ);
+    return;
+  }
+
+  // Consultation postbacks
+  if (consultCat) {
+    await handleConsultation(event as unknown as MessageEvent, userId, '', consultCat);
+    return;
+  }
+  if (consultQ) {
+    await handleConsultation(event as unknown as MessageEvent, userId, '', undefined, consultQ);
+    return;
+  }
 
   if (!action) return;
 
-  // Reset any current flow when starting a new one from postback
+  // Reset current flow when starting a new one from postback
   await resetState(userId);
 
   switch (action) {
@@ -103,20 +135,14 @@ async function handlePostback(event: PostbackEvent): Promise<void> {
     case 'daily_report':
       await startFlow('daily_report', event, userId);
       break;
+    case 'faq':
+      await startFlow('faq', event, userId);
+      break;
+    case 'consultation':
+      await startFlow('consultation', event, userId);
+      break;
     case 'reservation':
       await startFlow('reservation', event, userId);
-      break;
-    case 'faq':
-      await lineClient.replyMessage({
-        replyToken: event.replyToken,
-        messages: [{ type: 'text', text: MESSAGES.FAQ_START }],
-      });
-      break;
-    case 'contact':
-      await lineClient.replyMessage({
-        replyToken: event.replyToken,
-        messages: [{ type: 'text', text: MESSAGES.CONTACT }],
-      });
       break;
     case 'image_skin':
       await setState(userId, 'skin_diagnosis', 1, { awaiting_image: true });
@@ -185,13 +211,26 @@ async function startFlow(flow: FlowType, event: WebhookEvent & { replyToken: str
       });
       break;
     }
-    case 'reservation':
-      await setState(userId, 'reservation', 1, {});
+    case 'faq':
+      await setState(userId, 'faq', 1, {});
+      await handleFaq(event as unknown as MessageEvent, userId, '');
+      break;
+    case 'consultation':
+      await setState(userId, 'consultation', 1, {});
+      await handleConsultation(event as unknown as MessageEvent, userId, '');
+      break;
+    case 'reservation': {
+      const { buildStoreCardsMessage } = await import('@/lib/line/message-builder');
       await lineClient.replyMessage({
         replyToken: event.replyToken,
-        messages: [{ type: 'text', text: MESSAGES.RESERVATION_START }],
+        messages: [
+          { type: 'text', text: MESSAGES.RESERVATION_PROMPT },
+          buildStoreCardsMessage(),
+        ],
       });
+      await resetState(userId);
       break;
+    }
     default:
       break;
   }
@@ -210,7 +249,6 @@ async function routeImageMessage(
       await handleMealGuidance(event, userId);
       break;
     default:
-      // idle: ask what the image is for
       await lineClient.replyMessage({
         replyToken: event.replyToken,
         messages: [
@@ -246,8 +284,11 @@ async function routeToHandler(
     case 'daily_report':
       await handleDailyReport(event, userId, text);
       break;
-    case 'reservation':
-      await handleReservation(event, userId, text);
+    case 'faq':
+      await handleFaq(event, userId, text);
+      break;
+    case 'consultation':
+      await handleConsultation(event, userId, text);
       break;
     default:
       await handleFaq(event, userId, text);
@@ -262,5 +303,7 @@ function detectFlowFromText(text: string): FlowType | null {
   if (lower.includes('食事') || lower.includes('栄養')) return 'meal_analysis';
   if (lower.includes('日報') || lower.includes('記録')) return 'daily_report';
   if (lower.includes('予約')) return 'reservation';
+  if (lower === 'faq' || lower.includes('よくある質問')) return 'faq';
+  if (lower.includes('相談')) return 'consultation';
   return null;
 }
